@@ -1,0 +1,16 @@
+{
+  "total_assets": 600000,
+  "updated_at": null,
+  "positions": {
+    "funds": [],
+    "stocks": []
+  },
+  "allocation": {
+    "a_index_fund": {"target_pct": 0.25, "current_pct": 0},
+    "overseas_index_fund": {"target_pct": 0.10, "current_pct": 0},
+    "gold": {"target_pct": 0.10, "current_pct": 0},
+    "bond_fund": {"target_pct": 0.30, "current_pct": 0},
+    "money_market": {"target_pct": 0.05, "current_pct": 0},
+    "a_stocks": {"target_pct": 0.20, "current_pct": 0}
+  }
+}
