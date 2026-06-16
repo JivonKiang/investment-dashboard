@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>投资面板 - {{ date }}</title></head>
+<body style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f7fa;">
+    <div style="background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        <h1 style="color: #1a73e8;">投资面板 - {{ date }}</h1>
+        <h2>今日结论</h2>
+        <p style="font-size: 18px; font-weight: bold;">{{ conclusion }}</p>
+
+        <h2>具体操作</h2>
+        {% for signal in signals %}
+        <div style="padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 8px;">
+            <strong>{% if signal.action == 'buy' %}买入{% elif signal.action == 'sell' %}卖出{% else %}持有{% endif %} {{ signal.name }}</strong>
+            <span style="background: {{ '#1677ff' if signal.channel == 'alipay' else '#ff6b00' }}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px;">{{ signal.channel_label }}</span>
+            <br>金额: ¥{{ signal.amount | format_number }}
+            <br><span style="color: #666;">{{ signal.reason }}</span>
+        </div>
+        {% endfor %}
+        {% if not signals %}
+        <p>今日无操作建议，维持当前持仓。</p>
+        {% endif %}
+
+        <h2>回测数据</h2>
+        <table style="width:100%; border-collapse:collapse;">
+            <tr><td>近3月胜率</td><td>{{ backtest.win_rate_3m | default('N/A') }}</td></tr>
+            <tr><td>近6月胜率</td><td>{{ backtest.win_rate_6m | default('N/A') }}</td></tr>
+            <tr><td>近1年胜率</td><td>{{ backtest.win_rate | default('N/A') }}</td></tr>
+            <tr><td>近1年盈利率</td><td>{{ backtest.annual_return | default('N/A') }}</td></tr>
+            <tr><td>最大回撤</td><td>{{ backtest.max_drawdown | default('N/A') }}</td></tr>
+        </table>
+
+        <h2>风险提示</h2>
+        <p style="color: #f44336;">{{ risk_warning }}</p>
+
+        <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+        <p style="color: #999; font-size: 12px;">
+            本邮件仅供投资参考，不构成投资建议。投资有风险，入市需谨慎。<br>
+            面板链接: <a href="{{ dashboard_url }}">{{ dashboard_url }}</a>
+        </p>
+    </div>
+</body>
+</html>
