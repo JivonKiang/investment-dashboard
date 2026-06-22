@@ -2,7 +2,7 @@ name: Afternoon Push
 
 on:
   schedule:
-    - cron: '30 6 * * 1-5'
+    - cron: '30 6 * * 1-5'  # UTC 06:30 = 北京时间 14:30
   workflow_dispatch:
 
 jobs:
@@ -38,5 +38,8 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
+          publish_dir: ./
           keep_files: true
+          include_files: |
+            index.html
+            data/**

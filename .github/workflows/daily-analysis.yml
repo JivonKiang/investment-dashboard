@@ -2,7 +2,7 @@ name: Daily Analysis
 
 on:
   schedule:
-    - cron: '0 1 * * 1-5'
+    - cron: '0 1 * * 1-5'  # UTC 01:00 = 北京时间 09:00
   workflow_dispatch:
 
 jobs:
@@ -24,6 +24,10 @@ jobs:
         run: |
           python src/main.py --mode full-analysis
 
+      - name: Update game state
+        run: |
+          python src/main.py --mode update-game
+
       - name: Generate dashboard
         run: |
           python src/main.py --mode generate-dashboard
@@ -32,5 +36,8 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
+          publish_dir: ./
           keep_files: true
+          include_files: |
+            index.html
+            data/**

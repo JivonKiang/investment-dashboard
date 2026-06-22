@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏化资产配置专家 | Gamified Asset Allocation Expert</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* ===== 暗色主题（GitHub Dark风格） ===== */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #1c2128;
+            --bg-card-hover: #21262d;
+            --border: #30363d;
+            --border-accent: #58a6ff;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-yellow: #d29922;
+            --accent-red: #f85149;
+            --accent-purple: #bc8cff;
+            --accent-orange: #f0883e;
+            --gradient-blue: linear-gradient(135deg, #1f6feb, #58a6ff);
+            --gradient-green: linear-gradient(135deg, #238636, #3fb950);
+            --gradient-purple: linear-gradient(135deg, #8957e5, #bc8cff);
+            --gradient-gold: linear-gradient(135deg, #9e6a03, #d29922);
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* ===== 顶部状态栏 ===== */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .top-bar .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-bar .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-blue);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .top-bar .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .top-bar .logo-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .level-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+        }
+
+        .level-badge .level-icon {
+            font-size: 24px;
+        }
+
+        .level-badge .level-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .level-badge .level-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .level-badge .level-num {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .xp-bar-container {
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
+        }
+
+        .xp-bar-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .xp-bar {
+            height: 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            background: var(--gradient-blue);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .streak-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .streak-badge .fire { font-size: 18px; }
+        .streak-badge .count { color: var(--accent-orange); font-weight: 700; }
+
+        /* ===== 网格布局 ===== */
+        .grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .grid-4 { grid-template-columns: 2fr 1fr; }
+        .grid-main { grid-template-columns: 1fr 1fr; }
+
+        @media (max-width: 900px) {
+            .grid-2, .grid-3, .grid-4, .grid-main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ===== 卡片 ===== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--border-accent);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .icon {
+            font-size: 18px;
+        }
+
+        .card-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(88,166,255,0.15);
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        /* ===== 任务面板 ===== */
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .task-item:hover {
+            border-color: var(--accent-green);
+            background: var(--bg-card-hover);
+        }
+
+        .task-item.completed {
+            opacity: 0.5;
+            border-color: var(--accent-green);
+        }
+
+        .task-item.completed .task-check {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .task-check {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+        .task-info { flex: 1; }
+
+        .task-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .task-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .task-xp {
+            font-size: 12px;
+            color: var(--accent-yellow);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* ===== 资产配置环形图区域 ===== */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+
+        .allocation-legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .legend-label { color: var(--text-secondary); }
+        .legend-value { color: var(--text-primary); font-weight: 600; margin-left: auto; }
+
+        /* ===== 操作建议 ===== */
+        .action-item {
+            padding: 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .action-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .action-fund {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .action-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .action-tag.buy {
+            background: rgba(63,185,80,0.15);
+            color: var(--accent-green);
+        }
+
+        .action-tag.hold {
+            background: rgba(210,153,34,0.15);
+            color: var(--accent-yellow);
+        }
+
+        .action-tag.sell {
+            background: rgba(248,81,73,0.15);
+            color: var(--accent-red);
+        }
+
+        .action-detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .action-detail .channel {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .action-detail .amount {
+            color: var(--accent-green);
+            font-weight: 700;
+        }
+
+        /* ===== 回测证据 ===== */
+        .backtest-metric {
+            text-align: center;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .backtest-metric .value {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .backtest-metric .label {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .backtest-metric .value.green { color: var(--accent-green); }
+        .backtest-metric .value.red { color: var(--accent-red); }
+        .backtest-metric .value.blue { color: var(--accent-blue); }
+        .backtest-metric .value.yellow { color: var(--accent-yellow); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* ===== 成就展示 ===== */
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .achievement-item {
+            text-align: center;
+            padding: 14px 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .achievement-item.unlocked {
+            border-color: var(--accent-yellow);
+            background: rgba(210,153,34,0.05);
+        }
+
+        .achievement-item.locked {
+            opacity: 0.4;
+            filter: grayscale(1);
+        }
+
+        .achievement-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .achievement-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .achievement-desc {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .achievement-xp {
+            font-size: 10px;
+            color: var(--accent-yellow);
+            margin-top: 4px;
+        }
+
+        /* ===== 定投计划 ===== */
+        .dca-plan-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .dca-fund {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .dca-amount {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .dca-status {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .dca-status.done {
+            background: rgba(63,185,80,0.15);
+            color: var(--accent-green);
+        }
+
+        .dca-status.pending {
+            background: rgba(210,153,34,0.15);
+            color: var(--accent-yellow);
+        }
+
+        /* ===== 市场情绪 ===== */
+        .sentiment-gauge {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .sentiment-value {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .sentiment-label {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .sentiment-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .sentiment-bar {
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            margin-top: 16px;
+            overflow: hidden;
+        }
+
+        .sentiment-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s;
+        }
+
+        /* ===== 配置进度 ===== */
+        .progress-ring {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        .progress-circle {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+        .progress-circle svg {
+            transform: rotate(-90deg);
+        }
+
+        .progress-circle .bg {
+            fill: none;
+            stroke: var(--border);
+            stroke-width: 8;
+        }
+
+        .progress-circle .fg {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s;
+        }
+
+        .progress-circle .text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .progress-details {
+            flex: 1;
+        }
+
+        .progress-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .progress-item .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .progress-item .status-dot.ok { background: var(--accent-green); }
+        .progress-item .status-dot.warn { background: var(--accent-yellow); }
+
+        /* ===== 页脚 ===== */
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+            font-size: 12px;
+            border-top: 1px solid var(--border);
+            margin-top: 24px;
+        }
+
+        /* ===== 数据更新时间 ===== */
+        .update-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        /* ===== 滚动条美化 ===== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-primary); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ===== 表格 ===== */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 8px 10px;
+            background: var(--bg-secondary);
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .data-table tr:hover td {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        /* ===== 纳斯达克PE面板 ===== */
+        .pe-panel {
+            padding: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .pe-value {
+            font-size: 32px;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .pe-grade {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .pe-suggestion {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding: 8px;
+            background: var(--bg-card);
+            border-radius: 6px;
+        }
+
+        /* ===== 动画 ===== */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card { animation: fadeIn 0.3s ease; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ===== 顶部状态栏 ===== -->
+        <div class="top-bar" id="topBar">
+            <div class="logo">
+                <div class="logo-icon">📊</div>
+                <div>
+                    <div class="logo-text">游戏化资产配置专家</div>
+                    <div class="logo-sub">Gamified Asset Allocation Expert</div>
+                </div>
+            </div>
+            <div class="level-badge" id="levelBadge">
+                <span class="level-icon" id="levelIcon">🌱</span>
+                <div class="level-info">
+                    <span class="level-name" id="levelName">投资新手</span>
+                    <span class="level-num" id="levelNum">Lv.1</span>
+                </div>
+            </div>
+            <div class="xp-bar-container">
+                <div class="xp-bar-header">
+                    <span>经验值</span>
+                    <span id="xpText">0 / 100 XP</span>
+                </div>
+                <div class="xp-bar">
+                    <div class="xp-bar-fill" id="xpBarFill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="streak-badge">
+                <span class="fire">🔥</span>
+                <span>连续</span>
+                <span class="count" id="streakCount">0</span>
+                <span>天</span>
+            </div>
+        </div>
+
+        <!-- ===== 第一行：任务 + 资产配置 ===== -->
+        <div class="grid grid-main" style="margin-bottom: 16px;">
+            <!-- 今日任务面板 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">📋</span> 今日任务
+                    </div>
+                    <span class="card-badge" id="taskCount">0/5 完成</span>
+                </div>
+                <div id="taskList">
+                    <!-- 由JS动态填充 -->
+                </div>
+            </div>
+
+            <!-- 资产配置总览 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">🎯</span> 资产配置总览
+                    </div>
+                    <span class="card-badge" id="allocProgress">完成度 0%</span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="allocationChart"></canvas>
+                </div>
+                <div class="allocation-legend" id="allocationLegend">
+                    <!-- 由JS动态填充 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 第二行：操作建议 + 回测证据 ===== -->
+        <div class="grid grid-main" style="margin-bottom: 16px;">
+            <!-- 今日操作建议 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">💡</span> 今日操作建议
+                    </div>
+                    <span class="card-badge">支付宝专属</span>
+                </div>
+                <div id="actionList">
+                    <!-- 由JS动态填充 -->
+                </div>
+            </div>
+
+            <!-- 回测证据面板 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">🔬</span> 回测证据
+                    </div>
+                    <span class="card-badge">2019-2026</span>
+                </div>
+                <div class="metrics-grid" id="backtestMetrics">
+                    <!-- 由JS动态填充 -->
+                </div>
+                <div style="height: 200px;">
+                    <canvas id="dcaChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 第三行：定投计划 + 纳斯达克PE + 市场情绪 ===== -->
+        <div class="grid grid-3" style="margin-bottom: 16px;">
+            <!-- 定投计划 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">📅</span> 每周定投计划
+                    </div>
+                    <span class="card-badge">38000元/周</span>
+                </div>
+                <div id="dcaPlanList">
+                    <!-- 由JS动态填充 -->
+                </div>
+            </div>
+
+            <!-- 纳斯达克PE估值 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">🌐</span> 纳斯达克PE估值
+                    </div>
+                    <span class="card-badge">实时</span>
+                </div>
+                <div class="pe-panel">
+                    <div class="pe-value" id="nasdaqPE" style="color: var(--accent-red);">--</div>
+                    <div class="pe-grade" id="nasdaqGrade" style="color: var(--accent-red);">加载中...</div>
+                    <div class="pe-suggestion" id="nasdaqSuggestion">正在获取数据...</div>
+                </div>
+                <div style="height: 120px; margin-top: 12px;">
+                    <canvas id="peHistoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 市场情绪 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">🌡️</span> 市场情绪
+                    </div>
+                </div>
+                <div class="sentiment-gauge">
+                    <div class="sentiment-value" id="sentimentValue" style="color: var(--accent-yellow);">--</div>
+                    <div class="sentiment-label" id="sentimentLabel">中性</div>
+                    <div class="sentiment-desc" id="sentimentDesc">综合北向资金、融资余额、VIX等指标</div>
+                </div>
+                <div class="sentiment-bar">
+                    <div class="sentiment-bar-fill" id="sentimentBar" style="width: 50%; background: var(--gradient-blue);"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 4px;">
+                    <span>极度恐惧</span>
+                    <span>中性</span>
+                    <span>极度贪婪</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 第四行：配置进度 + 成就 ===== -->
+        <div class="grid grid-main" style="margin-bottom: 16px;">
+            <!-- 配置进度 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">⚙️</span> 配置进度（目标：60万平衡型）
+                    </div>
+                </div>
+                <div class="progress-ring">
+                    <div class="progress-circle">
+                        <svg width="100" height="100" viewBox="0 0 100 100">
+                            <circle class="bg" cx="50" cy="50" r="42"/>
+                            <circle class="fg" id="progressFg" cx="50" cy="50" r="42"
+                                stroke="url(#progressGrad)"
+                                stroke-dasharray="263.9"
+                                stroke-dashoffset="263.9"/>
+                            <defs>
+                                <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#58a6ff"/>
+                                    <stop offset="100%" style="stop-color:#3fb950"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="text" id="progressText">0%</div>
+                    </div>
+                    <div class="progress-details" id="progressDetails">
+                        <!-- 由JS动态填充 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 成就展示 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="icon">🏆</span> 成就系统
+                    </div>
+                    <span class="card-badge" id="achievementCount">0/10</span>
+                </div>
+                <div class="achievements-grid" id="achievementsGrid">
+                    <!-- 由JS动态填充 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== 第五行：基金统计表 ===== -->
+        <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="icon">📊</span> 基金回测统计
+                </div>
+                <span class="card-badge">支付宝可购</span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="data-table" id="fundStatsTable">
+                    <thead>
+                        <tr>
+                            <th>基金名称</th>
+                            <th>年化收益</th>
+                            <th>年化波动</th>
+                            <th>夏普比率</th>
+                            <th>最大回撤</th>
+                            <th>累计收益</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fundStatsBody">
+                        <!-- 由JS动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ===== 趋势策略回测 ===== -->
+        <div class="card" style="margin-bottom: 16px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="icon">📈</span> MA60-120趋势策略回测
+                </div>
+                <span class="card-badge">指数数据</span>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="data-table" id="trendBacktestTable">
+                    <thead>
+                        <tr>
+                            <th>指数</th>
+                            <th>基金代码</th>
+                            <th>交易次数</th>
+                            <th>胜率</th>
+                            <th>总净收益</th>
+                            <th>平均持有天数</th>
+                            <th>买入持有收益</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trendBacktestBody">
+                        <!-- 由JS动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <div class="footer">
+            <p>游戏化资产配置专家 v2.0 | 数据来源：天天基金、Yahoo Finance</p>
+            <p>投资有风险，入市需谨慎。本系统仅供参考，不构成投资建议。</p>
+            <p class="update-time" id="updateTime">最后更新：--</p>
+        </div>
+    </div>
+
+    <script>
+    // ===== 嵌入数据（由Python生成时注入，此处使用静态默认值） =====
+    const GAME_DATA = {
+        level: { level: 1, name: "投资新手", icon: "🌱", min_xp: 0 },
+        nextLevel: { level: 2, name: "理财学徒", icon: "📚", min_xp: 100 },
+        xp: 10,
+        xpProgress: 10,
+        xpNeeded: 100,
+        streak: 1,
+        totalTrades: 0,
+        dcaStreak: 0,
+        achievements: [
+            { id: "first_config", name: "初次配置", desc: "完成首次资产配置", xp: 50, icon: "🎯", unlocked: true },
+            { id: "first_trade", name: "首次交易", desc: "执行第一次基金操作", xp: 30, icon: "💰", unlocked: false },
+            { id: "dca_4weeks", name: "定投达人", desc: "连续4周执行定投", xp: 100, icon: "📅", unlocked: false },
+            { id: "dca_12weeks", name: "定投大师", desc: "连续12周执行定投", xp: 200, icon: "🌟", unlocked: false },
+            { id: "backtest_win", name: "回测胜者", desc: "策略回测胜率超过60%", xp: 80, icon: "🏅", unlocked: true },
+            { id: "rebalance", name: "再平衡", desc: "完成一次资产再平衡", xp: 60, icon: "⚖️", unlocked: false },
+            { id: "profit_10pct", name: "盈利10%", desc: "总资产盈利超过10%", xp: 150, icon: "🚀", unlocked: false },
+            { id: "risk_master", name: "风控达人", desc: "最大回撤控制在5%以内", xp: 120, icon: "🛡️", unlocked: false },
+            { id: "diversified", name: "分散投资", desc: "持有5种以上不同类型基金", xp: 70, icon: "🌐", unlocked: false },
+            { id: "patient", name: "耐心持有", desc: "单只基金持有超过365天", xp: 90, icon: "⏳", unlocked: false },
+        ],
+        pendingTasks: [
+            { id: "check_portfolio", name: "检查持仓", desc: "查看当前持仓状态", xp: 10 },
+            { id: "execute_dca", name: "执行定投", desc: "按计划执行本周定投", xp: 20 },
+            { id: "review_report", name: "查看报告", desc: "阅读周度回测报告", xp: 15 },
+            { id: "check_signals", name: "检查信号", desc: "查看最新交易信号", xp: 10 },
+            { id: "update_strategy", name: "更新策略", desc: "检查并更新投资策略", xp: 10 },
+        ],
+        allocation: {
+            progress: 72.5,
+            categories: [
+                { name: "A股指数基金", target_pct: 25, current_pct: 20, funds: ["易方达沪深300联接A", "南方中证500联接A"], status: "需调整" },
+                { name: "海外指数基金", target_pct: 20, current_pct: 15, funds: ["广发纳指100联接A", "博时标普500联接A"], status: "需调整" },
+                { name: "黄金ETF", target_pct: 10, current_pct: 10, funds: ["华安黄金ETF"], status: "达标" },
+                { name: "债券基金", target_pct: 30, current_pct: 35, funds: ["易方达中短期美元债A"], status: "需调整" },
+                { name: "货币基金", target_pct: 5, current_pct: 10, funds: ["余额宝"], status: "需调整" },
+                { name: "行业主题基金", target_pct: 10, current_pct: 10, funds: ["工银前沿医疗股票A"], status: "达标" },
+            ]
+        },
+        backtest: {
+            total_return: 25.42,
+            annual_return: 4.56,
+            sharpe: 1.15,
+            max_drawdown: -3.42,
+            win_rate: 65,
+            adjusted_return: 51.65,
+            adjusted_annual: 8.54,
+            dca_total_return: 48.7,
+            dca_irr: 11.3,
+        },
+        nasdaqPE: 41.22,
+        nasdaqGrade: "暂停",
+        nasdaqGradeColor: "red",
+        nasdaqSuggestion: "PE=41.22 估值偏高，建议暂停定投纳指基金",
+        peHistory: [38.17,38.08,38.45,38.33,38.74,38.74,38.52,38.65,38.86,39.07,39.02,39.31,39.78,39.75,40.29,40.36,40.15,40.39,40.56,40.20,40.10,39.96,40.34,40.39,40.49,40.90,40.88,41.08,41.17,41.31,41.43,41.36,41.23,40.07,40.43,40.17,39.71,40.46,40.61,41.34,40.87,40.64,41.22],
+        sentiment: { score: 55, level: "中性", desc: "市场情绪中性偏谨慎" },
+        fundStats: [
+            { name: "华安黄金ETF", annual: 19.48, vol: 17.16, sharpe: 1.02, drawdown: -28.08, cumulative: 146.97 },
+            { name: "广发纳指100联接A", annual: 16.98, vol: 21.12, sharpe: 0.71, drawdown: -29.47, cumulative: 121.83 },
+            { name: "博时标普500联接A", annual: 13.26, vol: 15.75, sharpe: 0.71, drawdown: -18.73, cumulative: 88.19 },
+            { name: "南方中证500联接A", annual: 8.31, vol: 18.96, sharpe: 0.33, drawdown: -36.04, cumulative: 49.99 },
+            { name: "易方达中短期美元债A", annual: 2.84, vol: 3.68, sharpe: 0.23, drawdown: -6.11, cumulative: 15.29 },
+            { name: "易方达沪深300联接A", annual: 2.20, vol: 16.54, sharpe: 0.01, drawdown: -34.74, cumulative: 11.71 },
+            { name: "债基基准", annual: 2.08, vol: 0.31, sharpe: 0.25, drawdown: -1.00, cumulative: 11.01 },
+        ],
+        trendBacktest: [
+            { index: "上证50", code: "110003", trades: 22, winRate: 36.4, totalNet: 395.1, avgHold: 193, bhReturn: 197.9 },
+            { index: "沪深300", code: "110020", trades: 23, winRate: 34.8, totalNet: 342.3, avgHold: 192, bhReturn: 284.3 },
+            { index: "科创50", code: "011608", trades: 5, winRate: 20.0, totalNet: 14.1, avgHold: 169, bhReturn: 91.1 },
+            { index: "中证500", code: "160119", trades: 25, winRate: 48.0, totalNet: 465.3, avgHold: 178, bhReturn: 798.6 },
+            { index: "创业板指", code: "001592", trades: 19, winRate: 26.3, totalNet: 115.1, avgHold: 153, bhReturn: 347.9 },
+        ],
+        dcaData: {
+            dates: ["2019-08","2019-11","2020-01","2020-05","2020-10","2021-01","2021-04","2021-07","2021-10","2022-01","2022-04","2022-07","2022-10","2023-01","2023-04","2023-07","2023-10","2024-01","2024-04","2024-07","2024-10","2025-01","2025-04","2025-07","2025-10","2026-01","2026-04"],
+            values: [29.2,46.6,58.1,81.2,107.3,122.6,127.7,80.3,85.3,88.9,93.2,102.8,111.9,116.7,122.4,125.7,134.4,140.1,147.7,145.7,152.5,156.2,163.7,175.1,184.1,189.9,193.5],
+            invested: [13.7,22.6,28.9,41.3,56.9,66.3,69.4,72.6,75.8,79.1,82.3,85.5,88.9,92.1,95.3,98.6,101.9,105.1,108.4,111.7,115.0,118.3,121.6,125.0,128.3,131.6,134.9],
+        },
+        updatedAt: "2026-06-22 16:55:26",
+    };
+
+    // ===== 渲染函数 =====
+
+    function renderTopBar() {
+        const d = GAME_DATA;
+        document.getElementById('levelIcon').textContent = d.level.icon;
+        document.getElementById('levelName').textContent = d.level.name;
+        document.getElementById('levelNum').textContent = `Lv.${d.level.level}`;
+        document.getElementById('streakCount').textContent = d.streak;
+
+        const pct = d.xpNeeded > 0 ? Math.min(100, (d.xpProgress / d.xpNeeded) * 100) : 100;
+        document.getElementById('xpBarFill').style.width = pct + '%';
+        document.getElementById('xpText').textContent = `${d.xp} / ${d.xpNeeded} XP`;
+    }
+
+    function renderTasks() {
+        const tasks = GAME_DATA.pendingTasks;
+        const container = document.getElementById('taskList');
+        container.innerHTML = tasks.map(t => `
+            <div class="task-item" onclick="completeTask('${t.id}')">
+                <div class="task-check">☐</div>
+                <div class="task-info">
+                    <div class="task-name">${t.name}</div>
+                    <div class="task-desc">${t.desc}</div>
+                </div>
+                <div class="task-xp">+${t.xp} XP</div>
+            </div>
+        `).join('');
+        document.getElementById('taskCount').textContent = `0/${tasks.length} 完成`;
+    }
+
+    function renderAllocation() {
+        const alloc = GAME_DATA.allocation;
+        document.getElementById('allocProgress').textContent = `完成度 ${alloc.progress}%`;
+
+        const colors = ['#58a6ff','#3fb950','#f0883e','#bc8cff','#d29922','#f85149'];
+        const data = alloc.categories.map(c => c.current_pct);
+        const labels = alloc.categories.map(c => c.name);
+
+        new Chart(document.getElementById('allocationChart'), {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors,
+                    borderColor: '#1c2128',
+                    borderWidth: 3,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const cat = alloc.categories[ctx.dataIndex];
+                                return `${cat.name}: ${cat.current_pct}% (目标${cat.target_pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const legend = document.getElementById('allocationLegend');
+        legend.innerHTML = alloc.categories.map((c, i) => `
+            <div class="legend-item">
+                <div class="legend-dot" style="background:${colors[i]}"></div>
+                <span class="legend-label">${c.name}</span>
+                <span class="legend-value">${c.current_pct}%</span>
+            </div>
+        `).join('');
+    }
+
+    function renderActions() {
+        const container = document.getElementById('actionList');
+        const actions = [
+            {
+                fund: "南方中证500联接A (160119)",
+                tag: "buy", tagText: "建议买入",
+                amount: "5,000 元",
+                channel: "支付宝",
+                reason: "中证500估值处于历史低位(PE<20)，MA60-120策略金叉信号",
+                confidence: "回测胜率48%，平均收益+465%"
+            },
+            {
+                fund: "华安黄金ETF (518880)",
+                tag: "hold", tagText: "继续持有",
+                amount: "3,000 元（定投）",
+                channel: "支付宝",
+                reason: "黄金处于长期上升趋势，年化收益19.48%，作为避险资产继续配置",
+                confidence: "回测夏普比率1.02"
+            },
+            {
+                fund: "广发纳指100联接A (270042)",
+                tag: "hold", tagText: "暂停定投",
+                amount: "0 元",
+                channel: "支付宝",
+                reason: "纳斯达克PE=41.22，估值偏高，暂停定投等待回调",
+                confidence: "PE>40 暂停阈值"
+            },
+            {
+                fund: "易方达中短期美元债A (007360)",
+                tag: "buy", tagText: "建议买入",
+                amount: "8,000 元",
+                channel: "支付宝",
+                reason: "债券配置偏低(当前35%，目标30%需微调)，美元债年化2.84%稳定收益",
+                confidence: "最大回撤仅-6.11%"
+            },
+        ];
+
+        container.innerHTML = actions.map(a => `
+            <div class="action-item">
+                <div class="action-header">
+                    <span class="action-fund">${a.fund}</span>
+                    <span class="action-tag ${a.tag}">${a.tagText}</span>
+                </div>
+                <div class="action-detail">
+                    💰 金额：<span class="amount">${a.amount}</span><br>
+                    📱 渠道：<span class="channel">${a.channel}</span><br>
+                    📊 依据：${a.reason}<br>
+                    🎯 证据：${a.confidence}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderBacktest() {
+        const bt = GAME_DATA.backtest;
+        const metrics = document.getElementById('backtestMetrics');
+        metrics.innerHTML = `
+            <div class="backtest-metric">
+                <div class="value green">${bt.total_return}%</div>
+                <div class="label">当前持仓累计收益</div>
+            </div>
+            <div class="backtest-metric">
+                <div class="value blue">${bt.annual_return}%</div>
+                <div class="label">年化收益率</div>
+            </div>
+            <div class="backtest-metric">
+                <div class="value yellow">${bt.sharpe}</div>
+                <div class="label">夏普比率</div>
+            </div>
+            <div class="backtest-metric">
+                <div class="value red">${bt.max_drawdown}%</div>
+                <div class="label">最大回撤</div>
+            </div>
+        `;
+
+        // 定投曲线图
+        const dca = GAME_DATA.dcaData;
+        new Chart(document.getElementById('dcaChart'), {
+            type: 'line',
+            data: {
+                labels: dca.dates,
+                datasets: [
+                    {
+                        label: '市值(万)',
+                        data: dca.values,
+                        borderColor: '#58a6ff',
+                        backgroundColor: 'rgba(88,166,255,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                    },
+                    {
+                        label: '投入(万)',
+                        data: dca.invested,
+                        borderColor: '#8b949e',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.3,
+                        pointRadius: 0,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#8b949e', font: { size: 11 } }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#6e7681', font: { size: 9 }, maxTicksLimit: 8 }, grid: { color: '#21262d' } },
+                    y: { ticks: { color: '#6e7681', font: { size: 10 } }, grid: { color: '#21262d' } }
+                }
+            }
+        });
+    }
+
+    function renderDCAPlan() {
+        const container = document.getElementById('dcaPlanList');
+        const plans = [
+            { fund: "易方达沪深300联接A", amount: "5,000", status: "pending" },
+            { fund: "南方中证500联接A", amount: "5,000", status: "pending" },
+            { fund: "华安黄金ETF", amount: "3,000", status: "done" },
+            { fund: "易方达中短期美元债A", amount: "8,000", status: "pending" },
+            { fund: "博时标普500联接A", amount: "5,000", status: "pending" },
+            { fund: "余额宝(货币)", amount: "2,000", status: "done" },
+        ];
+
+        container.innerHTML = plans.map(p => `
+            <div class="dca-plan-item">
+                <div>
+                    <div class="dca-fund">${p.fund}</div>
+                </div>
+                <div class="dca-amount">${p.amount}元</div>
+                <span class="dca-status ${p.status}">${p.status === 'done' ? '已执行' : '待执行'}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderNasdaqPE() {
+        const d = GAME_DATA;
+        document.getElementById('nasdaqPE').textContent = d.nasdaqPE.toFixed(2);
+        document.getElementById('nasdaqGrade').textContent = d.nasdaqGrade;
+        document.getElementById('nasdaqGrade').style.color =
+            d.nasdaqGradeColor === 'red' ? 'var(--accent-red)' :
+            d.nasdaqGradeColor === 'green' ? 'var(--accent-green)' : 'var(--accent-yellow)';
+        document.getElementById('nasdaqPE').style.color = document.getElementById('nasdaqGrade').style.color;
+        document.getElementById('nasdaqSuggestion').textContent = d.nasdaqSuggestion;
+
+        // PE历史图
+        new Chart(document.getElementById('peHistoryChart'), {
+            type: 'line',
+            data: {
+                labels: d.peHistory.map((_, i) => i + 1),
+                datasets: [{
+                    label: 'PE',
+                    data: d.peHistory,
+                    borderColor: '#f0883e',
+                    backgroundColor: 'rgba(240,136,62,0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    annotation: {
+                        annotations: {
+                            line1: { type: 'line', yMin: 35, yMax: 35, borderColor: 'rgba(210,153,34,0.5)', borderDash: [4,4] },
+                            line2: { type: 'line', yMin: 40, yMax: 40, borderColor: 'rgba(248,81,73,0.5)', borderDash: [4,4] },
+                        }
+                    }
+                },
+                scales: {
+                    x: { display: false },
+                    y: { ticks: { color: '#6e7681', font: { size: 9 } }, grid: { color: '#21262d' } }
+                }
+            }
+        });
+    }
+
+    function renderSentiment() {
+        const s = GAME_DATA.sentiment;
+        document.getElementById('sentimentValue').textContent = s.score;
+        document.getElementById('sentimentLabel').textContent = s.level;
+        document.getElementById('sentimentDesc').textContent = s.desc;
+
+        const bar = document.getElementById('sentimentBar');
+        bar.style.width = s.score + '%';
+        if (s.score < 30) {
+            bar.style.background = 'var(--accent-green)';
+            document.getElementById('sentimentValue').style.color = 'var(--accent-green)';
+        } else if (s.score > 70) {
+            bar.style.background = 'var(--accent-red)';
+            document.getElementById('sentimentValue').style.color = 'var(--accent-red)';
+        } else {
+            bar.style.background = 'var(--gradient-blue)';
+            document.getElementById('sentimentValue').style.color = 'var(--accent-yellow)';
+        }
+    }
+
+    function renderAchievements() {
+        const achs = GAME_DATA.achievements;
+        const unlocked = achs.filter(a => a.unlocked).length;
+        document.getElementById('achievementCount').textContent = `${unlocked}/${achs.length}`;
+
+        const grid = document.getElementById('achievementsGrid');
+        grid.innerHTML = achs.map(a => `
+            <div class="achievement-item ${a.unlocked ? 'unlocked' : 'locked'}">
+                <div class="achievement-icon">${a.icon}</div>
+                <div class="achievement-name">${a.name}</div>
+                <div class="achievement-desc">${a.desc}</div>
+                <div class="achievement-xp">+${a.xp} XP</div>
+            </div>
+        `).join('');
+    }
+
+    function renderProgress() {
+        const alloc = GAME_DATA.allocation;
+        const pct = alloc.progress;
+        const circumference = 2 * Math.PI * 42;
+        const offset = circumference * (1 - pct / 100);
+
+        document.getElementById('progressFg').style.strokeDashoffset = offset;
+        document.getElementById('progressText').textContent = pct + '%';
+
+        const details = document.getElementById('progressDetails');
+        details.innerHTML = alloc.categories.map(c => `
+            <div class="progress-item">
+                <div class="status-dot ${c.status === '达标' ? 'ok' : 'warn'}"></div>
+                <span style="color: var(--text-secondary)">${c.name}</span>
+                <span style="margin-left: auto; color: ${c.status === '达标' ? 'var(--accent-green)' : 'var(--accent-yellow)'}; font-weight: 600;">${c.status}</span>
+            </div>
+        `).join('');
+    }
+
+    function renderFundStats() {
+        const tbody = document.getElementById('fundStatsBody');
+        tbody.innerHTML = GAME_DATA.fundStats.map(f => `
+            <tr>
+                <td style="font-weight:600; color: var(--text-primary)">${f.name}</td>
+                <td style="color: ${f.annual > 5 ? 'var(--accent-green)' : 'var(--text-secondary)'}">${f.annual}%</td>
+                <td>${f.vol}%</td>
+                <td style="color: ${f.sharpe > 0.5 ? 'var(--accent-blue)' : 'var(--text-secondary)'}">${f.sharpe}</td>
+                <td style="color: var(--accent-red)">${f.drawdown}%</td>
+                <td style="color: ${f.cumulative > 30 ? 'var(--accent-green)' : 'var(--text-secondary)'}">${f.cumulative}%</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderTrendBacktest() {
+        const tbody = document.getElementById('trendBacktestBody');
+        tbody.innerHTML = GAME_DATA.trendBacktest.map(t => `
+            <tr>
+                <td style="font-weight:600; color: var(--text-primary)">${t.index}</td>
+                <td>${t.code}</td>
+                <td>${t.trades}</td>
+                <td style="color: ${t.winRate > 40 ? 'var(--accent-green)' : 'var(--accent-red)'}">${t.winRate}%</td>
+                <td style="color: var(--accent-green)">${t.totalNet}%</td>
+                <td>${t.avgHold}天</td>
+                <td style="color: var(--accent-blue)">${t.bhReturn}%</td>
+            </tr>
+        `).join('');
+    }
+
+    // ===== 交互函数 =====
+    function completeTask(taskId) {
+        const item = event.currentTarget;
+        if (item.classList.contains('completed')) return;
+        item.classList.add('completed');
+        item.querySelector('.task-check').textContent = '✅';
+
+        const completed = document.querySelectorAll('.task-item.completed').length;
+        const total = document.querySelectorAll('.task-item').length;
+        document.getElementById('taskCount').textContent = `${completed}/${total} 完成`;
+    }
+
+    // ===== 初始化 =====
+    function init() {
+        renderTopBar();
+        renderTasks();
+        renderAllocation();
+        renderActions();
+        renderBacktest();
+        renderDCAPlan();
+        renderNasdaqPE();
+        renderSentiment();
+        renderAchievements();
+        renderProgress();
+        renderFundStats();
+        renderTrendBacktest();
+        document.getElementById('updateTime').textContent = `最后更新：${GAME_DATA.updatedAt}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

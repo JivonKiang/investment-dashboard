@@ -2,13 +2,13 @@ name: Intraday Update
 
 on:
   schedule:
-    - cron: '*/1 1-7 * * 1-5'
+    - cron: '*/30 1-6 * * 1-5'  # UTC 01:00-06:30 每30分钟 = 北京时间 09:00-14:30
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
 
@@ -29,5 +29,8 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
+          publish_dir: ./
           keep_files: true
+          include_files: |
+            index.html
+            data/**

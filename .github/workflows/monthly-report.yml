@@ -2,7 +2,7 @@ name: Monthly Report
 
 on:
   schedule:
-    - cron: '0 1 1 * *'
+    - cron: '0 1 1 * *'  # 每月1日 UTC 01:00 = 北京时间 09:00
   workflow_dispatch:
 
 jobs:
@@ -24,9 +24,9 @@ jobs:
         run: |
           python src/main.py --mode backtest
 
-      - name: Generate monthly report
+      - name: Full analysis and dashboard
         run: |
-          python src/main.py --mode monthly-report
+          python src/main.py --mode full-analysis
 
       - name: Send monthly email
         env:
@@ -36,11 +36,14 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
         run: |
-          python src/main.py --mode send-monthly-email
+          python src/main.py --mode send-email
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./output
+          publish_dir: ./
           keep_files: true
+          include_files: |
+            index.html
+            data/**
