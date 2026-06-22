@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>资产配置仪表盘</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --green: #3fb950;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --yellow: #d2991d;
+    --purple: #bc8cff;
+    --orange: #f0883e;
+    --teal: #39d353;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    padding: 16px;
+    min-height: 100vh;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; color: #f0f6fc; }
+  h2 { font-size: 1.15rem; margin: 24px 0 12px; color: #f0f6fc; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 0.95rem; margin: 12px 0 8px; color: var(--text); }
+  .subtitle { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 20px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stat { text-align: center; }
+  .stat-value { font-size: 1.6rem; font-weight: 700; }
+  .stat-label { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.purple { color: var(--purple); }
+  .stat-value.orange { color: var(--orange); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-dim); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+  td { color: var(--text); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;
+    font-weight: 600; line-height: 1.4;
+  }
+  .tag-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .tag-blue { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .tag-yellow { background: rgba(210,153,29,0.15); color: var(--yellow); }
+  .tag-purple { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .tag-orange { background: rgba(240,136,62,0.15); color: var(--orange); }
+
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 8px; top: 0; bottom: 0;
+    width: 2px; background: var(--border);
+  }
+  .tl-item { position: relative; margin-bottom: 20px; }
+  .tl-dot {
+    position: absolute; left: -20px; top: 4px; width: 10px; height: 10px;
+    border-radius: 50%; background: var(--blue); border: 2px solid var(--bg);
+  }
+  .tl-week { font-size: 0.75rem; color: var(--blue); font-weight: 600; }
+  .tl-title { font-weight: 600; margin: 2px 0; }
+  .tl-desc { font-size: 0.8rem; color: var(--text-dim); }
+
+  .fund-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 6px;
+    margin-bottom: 8px; border: 1px solid var(--border);
+  }
+  .fund-card .code { font-size: 0.75rem; color: var(--text-dim); }
+  .fund-card .name { font-weight: 600; }
+  .fund-card .amount { font-weight: 700; color: var(--green); font-size: 0.95rem; }
+
+  .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .pb-green { background: var(--green); }
+  .pb-blue { background: var(--blue); }
+  .pb-yellow { background: var(--yellow); }
+  .pb-purple { background: var(--purple); }
+  .pb-orange { background: var(--orange); }
+
+  .compare-row { display: flex; margin-bottom: 8px; align-items: center; }
+  .compare-label { width: 80px; font-size: 0.8rem; color: var(--text-dim); }
+  .compare-bars { flex: 1; }
+  .compare-bar { height: 20px; border-radius: 3px; display: flex; align-items: center; padding: 0 8px; font-size: 0.7rem; font-weight: 600; margin-bottom: 2px; }
+  .bar-current { background: var(--yellow); }
+  .bar-target { background: var(--green); }
+
+  .highlight { color: var(--yellow); font-weight: 600; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  .chart-wrap { max-width: 340px; margin: 0 auto; }
+  canvas { max-width: 100%; }
+
+  .note { font-size: 0.8rem; color: var(--text-dim); padding: 12px; background: rgba(240,136,62,0.08); border-left: 3px solid var(--orange); border-radius: 4px; margin: 16px 0; }
+
+  @media (max-width: 600px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    body { padding: 10px; }
+    h1 { font-size: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>资产配置仪表盘</h1>
+<p class="subtitle">JivonKiang · 更新于 2026-06-22 · 基准：支付宝 + 工行积存金</p>
+
+<!-- ===== 总览 ===== -->
+<h2>一、总览</h2>
+<div class="grid-3">
+  <div class="card stat">
+    <div class="stat-value blue">≈70万</div>
+    <div class="stat-label">存量总资产</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-value yellow">3.8万/月</div>
+    <div class="stat-label">定投增量</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-value green">+0.4万</div>
+    <div class="stat-label">积存金浮盈（98克/成本8.5万）</div>
+  </div>
+</div>
+
+<div class="card">
+  <h3>当前配置 vs 建议目标</h3>
+  <div class="grid-2">
+    <div class="chart-wrap"><canvas id="chartCurrent"></canvas></div>
+    <div class="chart-wrap"><canvas id="chartTarget"></canvas></div>
+  </div>
+</div>
+
+<!-- ===== 当前持仓 ===== -->
+<h2>二、当前持仓结构</h2>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>类别</th><th>金额（万）</th><th>占比</th><th>风险</th><th>年化预期</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-blue">灵活</span></td>
+        <td class="num">10.0</td><td class="num">14.4%</td><td>R1</td><td>~1.5%</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">稳健</span></td>
+        <td class="num">50.0</td><td class="num">71.9%</td><td>R2</td><td>~2.5-4%</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">进阶</span></td>
+        <td class="num">1.0</td><td class="num">1.4%</td><td>R3+</td><td>浮动</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-orange">黄金</span></td>
+        <td class="num">8.9</td><td class="num">12.8%</td><td>R2</td><td>浮动</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr style="font-weight:700"><td>合计</td><td class="num">69.9</td><td class="num">100%</td><td></td><td></td></tr>
+    </tfoot>
+  </table>
+  <div class="note">
+    <strong>问题：</strong>72% 在稳健类（债基/固收+），权益类几乎为零。存量极度保守、增量（月定投3.8万）全砸美股科技——<strong>两头策略相互抵消</strong>。
+  </div>
+</div>
+
+<!-- ===== 目标结构 ===== -->
+<h2>三、调整后目标结构</h2>
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>类别</th><th>金额（万）</th><th>占比</th><th>变化</th><th>定位</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-blue">灵活</span></td>
+        <td class="num">10.0</td><td class="num">14.1%</td><td class="num" style="color:var(--text-dim)">不变</td><td>3-6个月应急金</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">稳健</span></td>
+        <td class="num">25.0</td><td class="num">35.2%</td><td class="num" style="color:var(--red)">-25万</td><td>压舱石、提供现金流</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">进阶（A股）</span></td>
+        <td class="num">15.0</td><td class="num">21.1%</td><td class="num" style="color:var(--green)">+14万</td><td>沪深300+中证500</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-green">QDII权益</span></td>
+        <td class="num">12.0</td><td class="num">16.9%</td><td class="num" style="color:var(--green)">+12万</td><td>美股/全球配置</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-orange">黄金</span></td>
+        <td class="num">8.9</td><td class="num">12.7%</td><td class="num" style="color:var(--text-dim)">保留</td><td>对冲极端风险</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr style="font-weight:700"><td>合计</td><td class="num">70.9</td><td class="num">100%</td><td></td><td></td></tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- ===== 存量调整执行路线 ===== -->
+<h2>四、存量调整执行路线</h2>
+<div class="card">
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-week">第 1 周（现在）</div>
+      <div class="tl-title">从稳健类赎回 10 万</div>
+      <div class="tl-desc">支付宝「稳健理财」→ 赎回债券基金/固收+产品，确认到账 T+1~T+3</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-week">第 2 周</div>
+      <div class="tl-title">建仓 A 股宽基 8 万</div>
+      <div class="tl-desc">沪深300 指数基金 4 万（代码 <span class="highlight">110020</span>）+ 中证500 指数基金 4 万（代码 <span class="highlight">160119</span>）</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-week">第 3 周</div>
+      <div class="tl-title">赎第二批 + 建 QDII 底仓</div>
+      <div class="tl-desc">稳健类再赎 10 万；QDII 建仓 4 万（纳指+标普各 2 万），剩余 6 万备用</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-week">第 4-5 周</div>
+      <div class="tl-title">赎第三批 + QDII 追加</div>
+      <div class="tl-desc">稳健类最后赎 5 万；QDII 再加 4 万，A 股宽基再加 4 万</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-week">第 6 周</div>
+      <div class="tl-title">收尾 + 调平</div>
+      <div class="tl-desc">补齐 A 股至 15 万、QDII 至 12 万目标。预留 2 万 A 股额度慢慢补</div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-week">第 2 个月起</div>
+      <div class="tl-title">切换到新定投计划（见下方）</div>
+    </div>
+  </div>
+  <div class="note">
+    <strong>为什么不一次性调完？</strong>分 4-6 周慢慢挪，避免择时压力。万一赎回后市场大跌，你有子弹在低位接；万一涨了，你已有部分仓位。
+  </div>
+</div>
+
+<!-- ===== 每月定投计划 ===== -->
+<h2>五、每月定投计划（3.8 万/月）</h2>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>方向</th><th>基金名称</th><th>代码</th><th>月投</th><th>平台</th><th>备注</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-green">纳指100</span></td>
+        <td>广发纳指100联接A</td>
+        <td class="code">270042</td>
+        <td class="num">8,000</td>
+        <td>支付宝</td>
+        <td>限额1000/日，需拆8天定投</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">标普500</span></td>
+        <td>博时标普500联接A</td>
+        <td class="code">050025</td>
+        <td class="num">7,000</td>
+        <td>支付宝</td>
+        <td>限额1000/日，需拆7天定投</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-yellow">海外债券</span></td>
+        <td>易方达中短期美元债A</td>
+        <td class="code">007360</td>
+        <td class="num">7,000</td>
+        <td>支付宝</td>
+        <td>不限购，对冲科技股波动</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">A股沪深300</span></td>
+        <td>易方达沪深300ETF联接A</td>
+        <td class="code">110020</td>
+        <td class="num">4,000</td>
+        <td>支付宝</td>
+        <td>不限购</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-purple">A股中证500</span></td>
+        <td>南方中证500ETF联接A</td>
+        <td class="code">160119</td>
+        <td class="num">4,000</td>
+        <td>支付宝</td>
+        <td>不限购</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-orange">黄金</span></td>
+        <td>工行如意积存金</td>
+        <td>—</td>
+        <td class="num">5,000</td>
+        <td>工行APP</td>
+        <td>当前成本867/g，浮盈中</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-blue">灵活备用</span></td>
+        <td>余额宝 / 货币基金</td>
+        <td>—</td>
+        <td class="num">3,000</td>
+        <td>支付宝</td>
+        <td>等回调时补仓</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr style="font-weight:700"><td colspan="3">每月合计</td><td class="num">38,000</td><td></td><td></td></tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- ===== 各基金卡片 ===== -->
+<div class="card">
+  <h3>定投基金详情</h3>
+  <div class="fund-card">
+    <div><div class="name">广发纳指100联接A</div><div class="code">270042 · QDII指数 · 限额1000/日</div></div>
+    <div class="amount">8,000/月</div>
+  </div>
+  <div class="fund-card">
+    <div><div class="name">博时标普500联接A</div><div class="code">050025 · QDII指数 · 限额1000/日</div></div>
+    <div class="amount">7,000/月</div>
+  </div>
+  <div class="fund-card">
+    <div><div class="name">易方达中短期美元债A</div><div class="code">007360 · QDII债基 · 不限购</div></div>
+    <div class="amount">7,000/月</div>
+  </div>
+  <div class="fund-card">
+    <div><div class="name">易方达沪深300ETF联接A</div><div class="code">110020 · 指数基金 · 不限购</div></div>
+    <div class="amount">4,000/月</div>
+  </div>
+  <div class="fund-card">
+    <div><div class="name">南方中证500ETF联接A</div><div class="code">160119 · 指数基金 · 不限购</div></div>
+    <div class="amount">4,000/月</div>
+  </div>
+  <div class="fund-card">
+    <div><div class="name">工行如意积存金</div><div class="code">工行APP → 贵金属 → 如意金积存</div></div>
+    <div class="amount">5,000/月</div>
+  </div>
+</div>
+
+<!-- ===== 执行逻辑 ===== -->
+<h2>六、执行逻辑</h2>
+
+<div class="card">
+  <h3>为什么这样配置？</h3>
+  <table>
+    <thead><tr><th>原则</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr>
+        <td style="white-space:nowrap"><span class="tag tag-yellow">先纠正错配</span></td>
+        <td>存量 72% 在稳健类 vs 增量 100% 在美股科技——必须统一到同一个风险预算下。存量降稳健、补权益；增量分散到多市场多资产。</td>
+      </tr>
+      <tr>
+        <td style="white-space:nowrap"><span class="tag tag-blue">真实分散</span></td>
+        <td>不是买很多只纳指基金就叫分散。美股科技 + 美股全行业（标普500）+ 海外债 + A股 + 黄金，这五个资产之间的相关性远低于五只纳指 QDII 之间。</td>
+      </tr>
+      <tr>
+        <td style="white-space:nowrap"><span class="tag tag-green">纳指预期需修正</span></td>
+        <td>纳指 100 自 1985 年以来年化 <strong>约 13.9%</strong>，不是 20-30%。近 5 年 18%+ 是 AI 牛市的特例。历史上经历过大跌 78%（2000 年）和 55%（2008 年），长期持有不等于没有剧烈波动。</td>
+      </tr>
+      <tr>
+        <td style="white-space:nowrap"><span class="tag tag-purple">A 股不能完全放弃</span></td>
+        <td>A 股和美股在不同周期表现不同。2022 年美股大跌时 A 股相对抗跌。全球化不等于只配美股。</td>
+      </tr>
+      <tr>
+        <td style="white-space:nowrap"><span class="tag tag-orange">黄金是压舱石</span></td>
+        <td>你 98 克成本 867/g，当前约 910/g，成本控制良好。黄金与科技股的相关性极低，是组合中真正的对冲资产。继续小额定投。</td>
+      </tr>
+      <tr>
+        <td style="white-space:nowrap"><span class="tag tag-blue">别让限额绑架你</span></td>
+        <td>纳指 QDII 限额导致你"好不容易买到所以不舍得停"——这是稀缺感驱动，不是配置逻辑驱动。限额不等于它更值得超配。</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== 风险提醒 ===== -->
+<div class="card">
+  <h3>风险提醒</h3>
+  <table>
+    <thead><tr><th>风险点</th><th>应对</th></tr></thead>
+    <tbody>
+      <tr><td>纳指高位回调</td><td>标普500 + 海外债提供缓冲，灵活备用金可低位补仓</td></tr>
+      <tr><td>人民币升值</td><td>海外债部分受益（美元债），A股部分不受汇率影响</td></tr>
+      <tr><td>金价继续下跌</td><td>当前成本 867/g 有一定安全垫，小额定投摊薄成本</td></tr>
+      <tr><td>赎回稳健类时市场大涨</td><td>分 4-6 周执行，不会完全踏空</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p style="text-align:center;color:var(--text-dim);font-size:0.75rem;margin:32px 0 16px;">
+  仅供参考，不构成投资建议。投资有风险，决策需谨慎。<br>
+  <a href="https://github.com/JivonKiang/investment-dashboard" style="color:var(--blue)">GitHub Repo</a>
+</p>
+
+</div>
+
+<script>
+// 当前配置饼图
+new Chart(document.getElementById('chartCurrent'), {
+  type: 'doughnut',
+  data: {
+    labels: ['灵活 14.4%', '稳健 71.9%', '进阶 1.4%', '黄金 12.8%'],
+    datasets: [{
+      data: [14.4, 71.9, 1.4, 12.8],
+      backgroundColor: ['#58a6ff', '#d2991d', '#bc8cff', '#f0883e'],
+      borderColor: '#161b22',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#c9d1d9', padding: 12, font: { size: 11 } } },
+      title: { display: true, text: '当前配置', color: '#f0f6fc', font: { size: 13 } }
+    }
+  }
+});
+
+// 目标配置饼图
+new Chart(document.getElementById('chartTarget'), {
+  type: 'doughnut',
+  data: {
+    labels: ['灵活 14.1%', '稳健 35.2%', '进阶A股 21.1%', 'QDII 16.9%', '黄金 12.7%'],
+    datasets: [{
+      data: [14.1, 35.2, 21.1, 16.9, 12.7],
+      backgroundColor: ['#58a6ff', '#d2991d', '#bc8cff', '#3fb950', '#f0883e'],
+      borderColor: '#161b22',
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#c9d1d9', padding: 12, font: { size: 11 } } },
+      title: { display: true, text: '目标配置', color: '#f0f6fc', font: { size: 13 } }
+    }
+  }
+});
+</script>
+
+</body>
+</html>
